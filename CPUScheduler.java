@@ -11,19 +11,14 @@ public class CPUScheduler {
             return;
         }
 
-        // Work on a COPY so the user's original order isn't scrambled.
         List<Process> queue = new ArrayList<>(processList);
-
-        // Sort the copy by arrival time (earliest first).
         queue.sort((a, b) -> a.getArrivalTime() - b.getArrivalTime());
 
-        int currentTime = 0;          // simulated clock
+        int currentTime = 0;
         double totalWaiting = 0;
         double totalTurnaround = 0;
 
         for (Process p : queue) {
-
-            // If CPU is idle waiting for this process, jump the clock to its arrival.
             if (currentTime < p.getArrivalTime()) {
                 currentTime = p.getArrivalTime();
             }
@@ -35,17 +30,69 @@ public class CPUScheduler {
             p.setSchedulingResults(completionTime, turnaroundTime, waitingTime);
             p.setState("TERMINATED");
 
-            currentTime = completionTime;   // advance clock to when it finished
-
+            currentTime = completionTime;
             totalWaiting += waitingTime;
             totalTurnaround += turnaroundTime;
         }
 
-        printResults(queue, totalWaiting, totalTurnaround);
+        printResults("FCFS", queue, totalWaiting, totalTurnaround);
     }
 
-    private static void printResults(List<Process> queue, double totalWaiting, double totalTurnaround) {
-        System.out.println("\n--- FCFS Scheduling Results ---");
+    // Shortest Job First (non-preemptive): when the CPU is free,
+    // pick the shortest job among those that have already arrived.
+    public static void runSJF(List<Process> processList) {
+
+        if (processList.isEmpty()) {
+            System.out.println("No processes to schedule. Add some first.");
+            return;
+        }
+
+        List<Process> remaining = new ArrayList<>(processList);
+        List<Process> finished  = new ArrayList<>();
+
+        int currentTime = 0;
+        double totalWaiting = 0;
+        double totalTurnaround = 0;
+
+        while (!remaining.isEmpty()) {
+
+            // Find the shortest job that has already arrived.
+            Process shortest = null;
+            for (Process p : remaining) {
+                if (p.getArrivalTime() <= currentTime) {
+                    if (shortest == null || p.getBurstTime() < shortest.getBurstTime()) {
+                        shortest = p;
+                    }
+                }
+            }
+
+            // Nothing arrived yet — CPU idle, advance clock and retry.
+            if (shortest == null) {
+                currentTime++;
+                continue;
+            }
+
+            int completionTime = currentTime + shortest.getBurstTime();
+            int turnaroundTime = completionTime - shortest.getArrivalTime();
+            int waitingTime    = turnaroundTime - shortest.getBurstTime();
+
+            shortest.setSchedulingResults(completionTime, turnaroundTime, waitingTime);
+            shortest.setState("TERMINATED");
+
+            currentTime = completionTime;
+            totalWaiting += waitingTime;
+            totalTurnaround += turnaroundTime;
+
+            remaining.remove(shortest);
+            finished.add(shortest);
+        }
+
+        printResults("SJF", finished, totalWaiting, totalTurnaround);
+    }
+
+    // Shared results printer — works for any algorithm.
+    private static void printResults(String name, List<Process> queue, double totalWaiting, double totalTurnaround) {
+        System.out.println("\n--- " + name + " Scheduling Results ---");
         System.out.println("PID\tArrival\tBurst\tCompletion\tTurnaround\tWaiting");
 
         for (Process p : queue) {

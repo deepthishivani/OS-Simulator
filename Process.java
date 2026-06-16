@@ -1,13 +1,11 @@
 public class Process {
 
-    // Original fields
     private int pid;
     private int arrivalTime;
     private int burstTime;
     private int priority;
     private String state;
 
-    // NEW: fields to store scheduling results
     private int completionTime;
     private int turnaroundTime;
     private int waitingTime;
@@ -20,7 +18,6 @@ public class Process {
         this.state = "NEW";
     }
 
-    // Getters for the original fields
     public int getPid() { return pid; }
     public int getArrivalTime() { return arrivalTime; }
     public int getBurstTime() { return burstTime; }
@@ -29,14 +26,12 @@ public class Process {
 
     public void setState(String state) { this.state = state; }
 
-    // NEW: store all three scheduling results in one call
     public void setSchedulingResults(int completionTime, int turnaroundTime, int waitingTime) {
         this.completionTime = completionTime;
         this.turnaroundTime = turnaroundTime;
         this.waitingTime = waitingTime;
     }
 
-    // NEW: getters for the results
     public int getCompletionTime() { return completionTime; }
     public int getTurnaroundTime() { return turnaroundTime; }
     public int getWaitingTime()    { return waitingTime; }

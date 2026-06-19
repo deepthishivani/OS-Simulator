@@ -17,7 +17,8 @@ public class OSSimulator {
             System.out.println("3. Run FCFS Scheduling");
             System.out.println("4. Run SJF Scheduling");
             System.out.println("5. Run Round Robin Scheduling");
-            System.out.println("6. Exit");
+            System.out.println("6. Run Page Replacement (Memory)");
+            System.out.println("7. Exit");
             System.out.print("Choose an option: ");
 
             int choice = scanner.nextInt();
@@ -35,6 +36,8 @@ public class OSSimulator {
                 int quantum = scanner.nextInt();
                 CPUScheduler.runRoundRobin(processList, quantum);
             } else if (choice == 6) {
+                runMemory(scanner);
+            } else if (choice == 7) {
                 running = false;
                 System.out.println("Exiting simulator. Goodbye!");
             } else {
@@ -68,5 +71,19 @@ public class OSSimulator {
         for (Process p : processList) {
             System.out.println(p);
         }
+    }
+
+    // Collects the memory input, then hands off to MemoryManager.
+    private static void runMemory(Scanner scanner) {
+        System.out.print("Enter number of frames: ");
+        int frames = scanner.nextInt();
+        System.out.print("How many page references? ");
+        int count = scanner.nextInt();
+        int[] ref = new int[count];
+        System.out.println("Enter the " + count + " page numbers one by one:");
+        for (int i = 0; i < count; i++) {
+            ref[i] = scanner.nextInt();
+        }
+        MemoryManager.runPageReplacement(ref, frames);
     }
 }

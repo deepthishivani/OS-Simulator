@@ -3,6 +3,19 @@ import java.util.List;
 
 public class CPUScheduler {
 
+    // A small helper class to record one segment of the timeline:
+    // "process pid ran from start to end".
+    static class GanttSegment {
+        int pid;
+        int start;
+        int end;
+        GanttSegment(int pid, int start, int end) {
+            this.pid = pid;
+            this.start = start;
+            this.end = end;
+        }
+    }
+
     // ---------- FCFS ----------
     public static void runFCFS(List<Process> processList) {
         if (processList.isEmpty()) {
@@ -13,6 +26,7 @@ public class CPUScheduler {
         List<Process> queue = new ArrayList<>(processList);
         queue.sort((a, b) -> a.getArrivalTime() - b.getArrivalTime());
 
+        List<GanttSegment> timeline = new ArrayList<>();
         int currentTime = 0;
         double totalWaiting = 0, totalTurnaround = 0;
 
@@ -20,7 +34,11 @@ public class CPUScheduler {
             if (currentTime < p.getArrivalTime()) {
                 currentTime = p.getArrivalTime();
             }
+            int start = currentTime;
             int completion = currentTime + p.getBurstTime();
+
+            timeline.add(new GanttSegment(p.getPid(), start, completion));
+
             int turnaround = completion - p.getArrivalTime();
             int waiting    = turnaround - p.getBurstTime();
 
@@ -31,6 +49,7 @@ public class CPUScheduler {
             totalWaiting += waiting;
             totalTurnaround += turnaround;
         }
+        printGantt("FCFS", timeline);
         printResults("FCFS", queue, totalWaiting, totalTurnaround);
     }
 
@@ -43,6 +62,7 @@ public class CPUScheduler {
 
         List<Process> remaining = new ArrayList<>(processList);
         List<Process> finished  = new ArrayList<>();
+        List<GanttSegment> timeline = new ArrayList<>();
 
         int currentTime = 0;
         double totalWaiting = 0, totalTurnaround = 0;
@@ -56,12 +76,16 @@ public class CPUScheduler {
                     }
                 }
             }
-            if (shortest == null) {   // nothing arrived yet — CPU idle
+            if (shortest == null) {
                 currentTime++;
                 continue;
             }
 
+            int start = currentTime;
             int completion = currentTime + shortest.getBurstTime();
+
+            timeline.add(new GanttSegment(shortest.getPid(), start, completion));
+
             int turnaround = completion - shortest.getArrivalTime();
             int waiting    = turnaround - shortest.getBurstTime();
 
@@ -75,6 +99,7 @@ public class CPUScheduler {
             remaining.remove(shortest);
             finished.add(shortest);
         }
+        printGantt("SJF", timeline);
         printResults("SJF", finished, totalWaiting, totalTurnaround);
     }
 
@@ -85,46 +110,44 @@ public class CPUScheduler {
             return;
         }
 
-        // Reset remaining time to full burst before we start.
         for (Process p : processList) {
             p.setRemainingTime(p.getBurstTime());
         }
 
-        // Processes in arrival order, so they enter the ready queue correctly.
         List<Process> arrivalOrder = new ArrayList<>(processList);
         arrivalOrder.sort((a, b) -> a.getArrivalTime() - b.getArrivalTime());
 
         List<Process> readyQueue = new ArrayList<>();
         List<Process> finished   = new ArrayList<>();
+        List<GanttSegment> timeline = new ArrayList<>();
 
         int currentTime = 0;
-        int nextToArrive = 0;   // index into arrivalOrder of next process not yet queued
+        int nextToArrive = 0;
         double totalWaiting = 0, totalTurnaround = 0;
 
         while (finished.size() < processList.size()) {
 
-            // Queue any processes that have arrived by now.
             while (nextToArrive < arrivalOrder.size()
                    && arrivalOrder.get(nextToArrive).getArrivalTime() <= currentTime) {
                 readyQueue.add(arrivalOrder.get(nextToArrive));
                 nextToArrive++;
             }
 
-            // Nobody ready — CPU idle, tick the clock.
             if (readyQueue.isEmpty()) {
                 currentTime++;
                 continue;
             }
 
-            Process current = readyQueue.remove(0);   // front of the queue
+            Process current = readyQueue.remove(0);
 
-            // Run for one quantum, or until it finishes — whichever is smaller.
             int runTime = Math.min(quantum, current.getRemainingTime());
+            int start = currentTime;
             currentTime += runTime;
             current.setRemainingTime(current.getRemainingTime() - runTime);
 
-            // Processes that arrived WHILE this one ran enter the queue
-            // BEFORE the preempted process goes back — this ordering matters.
+            // Record this slice of the timeline.
+            timeline.add(new GanttSegment(current.getPid(), start, currentTime));
+
             while (nextToArrive < arrivalOrder.size()
                    && arrivalOrder.get(nextToArrive).getArrivalTime() <= currentTime) {
                 readyQueue.add(arrivalOrder.get(nextToArrive));
@@ -132,9 +155,9 @@ public class CPUScheduler {
             }
 
             if (current.getRemainingTime() > 0) {
-                readyQueue.add(current);          // not done — back of the queue
+                readyQueue.add(current);
             } else {
-                int completion = currentTime;     // done — record results
+                int completion = currentTime;
                 int turnaround = completion - current.getArrivalTime();
                 int waiting    = turnaround - current.getBurstTime();
 
@@ -146,7 +169,36 @@ public class CPUScheduler {
                 finished.add(current);
             }
         }
+        printGantt("Round Robin (quantum=" + quantum + ")", timeline);
         printResults("Round Robin (quantum=" + quantum + ")", finished, totalWaiting, totalTurnaround);
+    }
+
+    // ---------- Gantt chart printer ----------
+    private static void printGantt(String name, List<GanttSegment> timeline) {
+        System.out.println("\n--- " + name + " Gantt Chart ---");
+
+        // Top row: the process boxes.
+        StringBuilder bars = new StringBuilder("|");
+        for (GanttSegment seg : timeline) {
+            bars.append("  P").append(seg.pid).append("  |");
+        }
+        System.out.println(bars.toString());
+
+        // Bottom row: the time markers under each boundary.
+        StringBuilder times = new StringBuilder();
+        if (!timeline.isEmpty()) {
+            times.append(timeline.get(0).start);
+        }
+        for (GanttSegment seg : timeline) {
+            // pad so the number sits roughly under the bar boundary
+            int boxWidth = ("  P" + seg.pid + "  ").length();
+            String endStr = String.valueOf(seg.end);
+            for (int s = 0; s < boxWidth + 1 - endStr.length(); s++) {
+                times.append(" ");
+            }
+            times.append(endStr);
+        }
+        System.out.println(times.toString());
     }
 
     // ---------- shared results printer ----------

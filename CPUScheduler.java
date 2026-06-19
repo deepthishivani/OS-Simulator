@@ -3,9 +3,8 @@ import java.util.List;
 
 public class CPUScheduler {
 
-    // First Come First Serve: run processes in arrival order, each to completion.
+    // ---------- FCFS ----------
     public static void runFCFS(List<Process> processList) {
-
         if (processList.isEmpty()) {
             System.out.println("No processes to schedule. Add some first.");
             return;
@@ -15,33 +14,28 @@ public class CPUScheduler {
         queue.sort((a, b) -> a.getArrivalTime() - b.getArrivalTime());
 
         int currentTime = 0;
-        double totalWaiting = 0;
-        double totalTurnaround = 0;
+        double totalWaiting = 0, totalTurnaround = 0;
 
         for (Process p : queue) {
             if (currentTime < p.getArrivalTime()) {
                 currentTime = p.getArrivalTime();
             }
+            int completion = currentTime + p.getBurstTime();
+            int turnaround = completion - p.getArrivalTime();
+            int waiting    = turnaround - p.getBurstTime();
 
-            int completionTime = currentTime + p.getBurstTime();
-            int turnaroundTime = completionTime - p.getArrivalTime();
-            int waitingTime    = turnaroundTime - p.getBurstTime();
-
-            p.setSchedulingResults(completionTime, turnaroundTime, waitingTime);
+            p.setSchedulingResults(completion, turnaround, waiting);
             p.setState("TERMINATED");
 
-            currentTime = completionTime;
-            totalWaiting += waitingTime;
-            totalTurnaround += turnaroundTime;
+            currentTime = completion;
+            totalWaiting += waiting;
+            totalTurnaround += turnaround;
         }
-
         printResults("FCFS", queue, totalWaiting, totalTurnaround);
     }
 
-    // Shortest Job First (non-preemptive): when the CPU is free,
-    // pick the shortest job among those that have already arrived.
+    // ---------- SJF (non-preemptive) ----------
     public static void runSJF(List<Process> processList) {
-
         if (processList.isEmpty()) {
             System.out.println("No processes to schedule. Add some first.");
             return;
@@ -51,12 +45,9 @@ public class CPUScheduler {
         List<Process> finished  = new ArrayList<>();
 
         int currentTime = 0;
-        double totalWaiting = 0;
-        double totalTurnaround = 0;
+        double totalWaiting = 0, totalTurnaround = 0;
 
         while (!remaining.isEmpty()) {
-
-            // Find the shortest job that has already arrived.
             Process shortest = null;
             for (Process p : remaining) {
                 if (p.getArrivalTime() <= currentTime) {
@@ -65,36 +56,103 @@ public class CPUScheduler {
                     }
                 }
             }
-
-            // Nothing arrived yet — CPU idle, advance clock and retry.
-            if (shortest == null) {
+            if (shortest == null) {   // nothing arrived yet — CPU idle
                 currentTime++;
                 continue;
             }
 
-            int completionTime = currentTime + shortest.getBurstTime();
-            int turnaroundTime = completionTime - shortest.getArrivalTime();
-            int waitingTime    = turnaroundTime - shortest.getBurstTime();
+            int completion = currentTime + shortest.getBurstTime();
+            int turnaround = completion - shortest.getArrivalTime();
+            int waiting    = turnaround - shortest.getBurstTime();
 
-            shortest.setSchedulingResults(completionTime, turnaroundTime, waitingTime);
+            shortest.setSchedulingResults(completion, turnaround, waiting);
             shortest.setState("TERMINATED");
 
-            currentTime = completionTime;
-            totalWaiting += waitingTime;
-            totalTurnaround += turnaroundTime;
+            currentTime = completion;
+            totalWaiting += waiting;
+            totalTurnaround += turnaround;
 
             remaining.remove(shortest);
             finished.add(shortest);
         }
-
         printResults("SJF", finished, totalWaiting, totalTurnaround);
     }
 
-    // Shared results printer — works for any algorithm.
+    // ---------- Round Robin (preemptive) ----------
+    public static void runRoundRobin(List<Process> processList, int quantum) {
+        if (processList.isEmpty()) {
+            System.out.println("No processes to schedule. Add some first.");
+            return;
+        }
+
+        // Reset remaining time to full burst before we start.
+        for (Process p : processList) {
+            p.setRemainingTime(p.getBurstTime());
+        }
+
+        // Processes in arrival order, so they enter the ready queue correctly.
+        List<Process> arrivalOrder = new ArrayList<>(processList);
+        arrivalOrder.sort((a, b) -> a.getArrivalTime() - b.getArrivalTime());
+
+        List<Process> readyQueue = new ArrayList<>();
+        List<Process> finished   = new ArrayList<>();
+
+        int currentTime = 0;
+        int nextToArrive = 0;   // index into arrivalOrder of next process not yet queued
+        double totalWaiting = 0, totalTurnaround = 0;
+
+        while (finished.size() < processList.size()) {
+
+            // Queue any processes that have arrived by now.
+            while (nextToArrive < arrivalOrder.size()
+                   && arrivalOrder.get(nextToArrive).getArrivalTime() <= currentTime) {
+                readyQueue.add(arrivalOrder.get(nextToArrive));
+                nextToArrive++;
+            }
+
+            // Nobody ready — CPU idle, tick the clock.
+            if (readyQueue.isEmpty()) {
+                currentTime++;
+                continue;
+            }
+
+            Process current = readyQueue.remove(0);   // front of the queue
+
+            // Run for one quantum, or until it finishes — whichever is smaller.
+            int runTime = Math.min(quantum, current.getRemainingTime());
+            currentTime += runTime;
+            current.setRemainingTime(current.getRemainingTime() - runTime);
+
+            // Processes that arrived WHILE this one ran enter the queue
+            // BEFORE the preempted process goes back — this ordering matters.
+            while (nextToArrive < arrivalOrder.size()
+                   && arrivalOrder.get(nextToArrive).getArrivalTime() <= currentTime) {
+                readyQueue.add(arrivalOrder.get(nextToArrive));
+                nextToArrive++;
+            }
+
+            if (current.getRemainingTime() > 0) {
+                readyQueue.add(current);          // not done — back of the queue
+            } else {
+                int completion = currentTime;     // done — record results
+                int turnaround = completion - current.getArrivalTime();
+                int waiting    = turnaround - current.getBurstTime();
+
+                current.setSchedulingResults(completion, turnaround, waiting);
+                current.setState("TERMINATED");
+
+                totalWaiting += waiting;
+                totalTurnaround += turnaround;
+                finished.add(current);
+            }
+        }
+        printResults("Round Robin (quantum=" + quantum + ")", finished, totalWaiting, totalTurnaround);
+    }
+
+    // ---------- shared results printer ----------
     private static void printResults(String name, List<Process> queue, double totalWaiting, double totalTurnaround) {
         System.out.println("\n--- " + name + " Scheduling Results ---");
         System.out.println("PID\tArrival\tBurst\tCompletion\tTurnaround\tWaiting");
-
         for (Process p : queue) {
             System.out.println(
                   "P" + p.getPid()
@@ -105,7 +163,6 @@ public class CPUScheduler {
                 + "\t\t" + p.getWaitingTime()
             );
         }
-
         int n = queue.size();
         System.out.printf("%nAverage Waiting Time: %.2f%n", totalWaiting / n);
         System.out.printf("Average Turnaround Time: %.2f%n", totalTurnaround / n);

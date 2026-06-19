@@ -16,7 +16,8 @@ public class OSSimulator {
             System.out.println("2. View all processes");
             System.out.println("3. Run FCFS Scheduling");
             System.out.println("4. Run SJF Scheduling");
-            System.out.println("5. Exit");
+            System.out.println("5. Run Round Robin Scheduling");
+            System.out.println("6. Exit");
             System.out.print("Choose an option: ");
 
             int choice = scanner.nextInt();
@@ -30,13 +31,16 @@ public class OSSimulator {
             } else if (choice == 4) {
                 CPUScheduler.runSJF(processList);
             } else if (choice == 5) {
+                System.out.print("Enter time quantum: ");
+                int quantum = scanner.nextInt();
+                CPUScheduler.runRoundRobin(processList, quantum);
+            } else if (choice == 6) {
                 running = false;
                 System.out.println("Exiting simulator. Goodbye!");
             } else {
                 System.out.println("Invalid option. Please try again.");
             }
         }
-
         scanner.close();
     }
 

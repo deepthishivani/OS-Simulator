@@ -10,6 +10,8 @@ public class Process {
     private int turnaroundTime;
     private int waitingTime;
 
+    private int remainingTime;   // burst left to run — needed for Round Robin (preemptive)
+
     public Process(int pid, int arrivalTime, int burstTime, int priority) {
         this.pid = pid;
         this.arrivalTime = arrivalTime;
@@ -35,6 +37,9 @@ public class Process {
     public int getCompletionTime() { return completionTime; }
     public int getTurnaroundTime() { return turnaroundTime; }
     public int getWaitingTime()    { return waitingTime; }
+
+    public int getRemainingTime() { return remainingTime; }
+    public void setRemainingTime(int remainingTime) { this.remainingTime = remainingTime; }
 
     @Override
     public String toString() {

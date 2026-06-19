@@ -18,7 +18,8 @@ public class OSSimulator {
             System.out.println("4. Run SJF Scheduling");
             System.out.println("5. Run Round Robin Scheduling");
             System.out.println("6. Run Page Replacement (Memory)");
-            System.out.println("7. Exit");
+            System.out.println("7. Run Banker's Algorithm (Deadlock)");
+            System.out.println("8. Exit");
             System.out.print("Choose an option: ");
 
             int choice = scanner.nextInt();
@@ -38,6 +39,8 @@ public class OSSimulator {
             } else if (choice == 6) {
                 runMemory(scanner);
             } else if (choice == 7) {
+                runBanker(scanner);
+            } else if (choice == 8) {
                 running = false;
                 System.out.println("Exiting simulator. Goodbye!");
             } else {
@@ -73,7 +76,6 @@ public class OSSimulator {
         }
     }
 
-    // Collects the memory input, then hands off to MemoryManager.
     private static void runMemory(Scanner scanner) {
         System.out.print("Enter number of frames: ");
         int frames = scanner.nextInt();
@@ -85,5 +87,37 @@ public class OSSimulator {
             ref[i] = scanner.nextInt();
         }
         MemoryManager.runPageReplacement(ref, frames);
+    }
+
+    // Collects the Banker's input grids, then hands off to Banker.
+    private static void runBanker(Scanner scanner) {
+        System.out.print("Enter number of processes: ");
+        int n = scanner.nextInt();
+        System.out.print("Enter number of resource types: ");
+        int m = scanner.nextInt();
+
+        int[][] allocation = new int[n][m];
+        System.out.println("Enter the Allocation matrix (" + n + " rows x " + m + " values):");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                allocation[i][j] = scanner.nextInt();
+            }
+        }
+
+        int[][] max = new int[n][m];
+        System.out.println("Enter the Max matrix (" + n + " rows x " + m + " values):");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                max[i][j] = scanner.nextInt();
+            }
+        }
+
+        int[] available = new int[m];
+        System.out.println("Enter the Available resources (" + m + " values):");
+        for (int j = 0; j < m; j++) {
+            available[j] = scanner.nextInt();
+        }
+
+        Banker.checkSafety(allocation, max, available);
     }
 }

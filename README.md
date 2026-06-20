@@ -4,11 +4,13 @@ A console-based operating system simulator written in pure Java. It models the c
 
 This project was built to serve two purposes at once: as a hands-on way to learn operating-system internals by implementing them, and as a portfolio piece demonstrating understanding of CS fundamentals rather than just application code.
 
+📄 **[Full walkthrough with sample output (PDF)](OS_Simulator_Walkthrough.pdf)** — the program running end to end, section by section.
+
 ---
 
 ## What it does
 
-The simulator does not run a real operating system. Instead, it recreates the *algorithms* an OS uses to manage a computer's limited resources. You feed in processes or resource data through a menu, pick an algorithm, and the program shows exactly what the OS would decide and why.
+The simulator does not run a real operating system. Instead, it recreates the _algorithms_ an OS uses to manage a computer's limited resources. You feed in processes or resource data through a menu, pick an algorithm, and the program shows exactly what the OS would decide and why.
 
 It covers three classic operating-system topics:
 
@@ -21,6 +23,7 @@ It covers three classic operating-system topics:
 ## Features
 
 ### 1. CPU Scheduling
+
 Three scheduling algorithms, each printing a Gantt chart and a results table with completion time, turnaround time, waiting time, and averages.
 
 - **FCFS (First Come First Serve)** — non-preemptive; processes run in arrival order.
@@ -28,33 +31,35 @@ Three scheduling algorithms, each printing a Gantt chart and a results table wit
 - **Round Robin** — preemptive; each process runs for a fixed time quantum, then yields the CPU to the next.
 
 ### 2. Memory Management — Page Replacement
-Runs all three algorithms on the *same* reference string and compares them side by side (page faults, hits, and hit ratio).
+
+Runs all three algorithms on the _same_ reference string and compares them side by side (page faults, hits, and hit ratio).
 
 - **FIFO** — evict the oldest page in memory.
 - **LRU (Least Recently Used)** — evict the page unused for the longest time.
 - **Optimal** — evict the page not needed for the longest time in the future (theoretical benchmark).
 
 ### 3. Deadlock Avoidance — Banker's Algorithm
+
 Given allocation, maximum, and available resource data, it computes the Need matrix, checks whether the system is in a **safe state**, and prints a **safe sequence** if one exists.
 
 ---
 
 ## Technologies
 
-- **Java (JDK 17+)** — standard library only, no external dependencies
+- **Java (JDK 21)** — standard library only, no external dependencies
 - **Git** — version control
 
 ---
 
 ## Project Structure
 
-| File | Responsibility |
-|------|----------------|
-| `OSSimulator.java` | Menu-driven driver; collects user input and calls the right module |
-| `Process.java` | Data model for a single process |
-| `CPUScheduler.java` | FCFS, SJF, Round Robin + Gantt chart |
-| `MemoryManager.java` | FIFO, LRU, Optimal page replacement + comparison |
-| `Banker.java` | Banker's Algorithm safety check |
+| File                 | Responsibility                                                     |
+| -------------------- | ------------------------------------------------------------------ |
+| `OSSimulator.java`   | Menu-driven driver; collects user input and calls the right module |
+| `Process.java`       | Data model for a single process                                    |
+| `CPUScheduler.java`  | FCFS, SJF, Round Robin + Gantt chart                               |
+| `MemoryManager.java` | FIFO, LRU, Optimal page replacement + comparison                   |
+| `Banker.java`        | Banker's Algorithm safety check                                    |
 
 ---
 
@@ -79,7 +84,7 @@ Then choose an option from the menu and follow the prompts.
 Input processes:
 
 | PID | Arrival | Burst |
-|-----|---------|-------|
+| --- | ------- | ----- |
 | P1  | 0       | 5     |
 | P2  | 1       | 4     |
 | P3  | 2       | 2     |
@@ -127,6 +132,24 @@ P4: 4 3 1
 System is in a SAFE state.
 Safe sequence: P1 -> P3 -> P4 -> P0 -> P2
 ```
+
+---
+
+## Screenshots
+
+Output captured directly from the running simulator.
+
+### Round Robin Gantt Chart
+
+![Round Robin Gantt chart and results](screenshots/gantt.png)
+
+### Page Replacement Comparison (FIFO vs LRU vs Optimal)
+
+![Page replacement comparison](screenshots/memory.png)
+
+### Banker's Algorithm Safe Sequence
+
+![Banker's Algorithm safe sequence](screenshots/banker.png)
 
 ---
 
